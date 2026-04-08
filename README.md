@@ -26,7 +26,7 @@ A realistic reinforcement learning environment for training autonomous drones to
 - Docker (optional, for containerization)
 - pip or conda
 
-### Installation
+## Installation
 
 ```bash
 # Clone the repository

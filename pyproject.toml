@@ -1,0 +1,22 @@
+[project]
+name = "disaster-rescue-rl"
+version = "0.1.0"
+description = "A reinforcement learning project for disaster rescue operations."
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["reinforcement-learning", "disaster", "rescue"]
+homepage = "https://github.com/paarchipatel-ship-it/disaster-rescue-rl"
+repository = "https://github.com/paarchipatel-ship-it/disaster-rescue-rl"
+
+[project.dependencies]
+# Add dependencies from requirements.txt
+requests = "^2.25.1"
+pandas = "^1.2.0"
+# Add other dependencies as required
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"

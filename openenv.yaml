@@ -1,0 +1,237 @@
+id: "DisasterRescue-v1"
+title: "Autonomous Drone Search & Rescue Post-Disaster"
+description: |
+  A real-world RL environment simulating autonomous drone operations for urban
+  search-and-rescue (SAR) missions post-disaster. The agent controls a drone
+  that must navigate hazardous terrain, locate survivors, and deliver resources
+  efficiently. The environment models realistic constraints: limited battery,
+  partial observability (fog), dynamic hazards (aftershocks, fires), and
+  multi-objective rewards (rescue efficiency, time, energy, safety).
+  
+  This environment addresses a critical gap in RL benchmarking: there is no
+  standardized environment for evaluating agents on disaster response tasks.
+  Real SAR teams would benefit from RL-trained coordination policies to reduce
+  response time and minimize rescue operation casualties.
+
+version: "1.0.0"
+openenv_spec_version: "1.0"
+author: "Scale X Meta Hackathon - Disaster Response RL Track"
+license: "MIT"
+keywords:
+  - "disaster-response"
+  - "search-and-rescue"
+  - "autonomous-drones"
+  - "reinforcement-learning"
+  - "real-world-simulation"
+  - "urban-robotics"
+
+# Environment Metadata
+metadata:
+  task_category: "navigation_and_planning"
+  domain: "disaster_response"
+  real_world_applicability: true
+  partial_observability: true
+  stochastic: true
+  multi_agent_capable: false
+  max_episode_steps: 500
+
+# Action Space Definition
+action_space:
+  type: "Discrete"
+  n: 8
+  description: "8 directional movements + stay"
+  action_meanings:
+    0: "Move North"
+    1: "Move Northeast"
+    2: "Move East"
+    3: "Move Southeast"
+    4: "Move South"
+    5: "Move Southwest"
+    6: "Move West"
+    7: "Move Northwest"
+
+# Observation Space Definition
+observation_space:
+  type: "Box"
+  shape: [64, 64, 5]
+  dtype: "float32"
+  low: 0.0
+  high: 1.0
+  description: |
+    5-channel grid observation (64x64):
+    - Channel 0: Agent position (self)
+    - Channel 1: Victims (alive survivors to rescue)
+    - Channel 2: Hazards (fires, rubble, unstable structures)
+    - Channel 3: Resources (medical supplies, water)
+    - Channel 4: Visibility mask (fog/partial observability)
+  semantics:
+    - name: "agent_channel"
+      index: 0
+      description: "1.0 at agent location, 0 elsewhere"
+    - name: "victim_channel"
+      index: 1
+      description: "1.0 at victim locations, 0 elsewhere"
+    - name: "hazard_channel"
+      index: 2
+      description: "Hazard intensity (0=safe, 1=maximum danger)"
+    - name: "resource_channel"
+      index: 3
+      description: "Resource availability (0=none, 1=abundant)"
+    - name: "visibility_channel"
+      index: 4
+      description: "1.0 visible, 0.0 in fog (partial observability)"
+
+# Reward Function Specification
+reward_spec:
+  range: [0.0, 1.0]
+  description: |
+    Normalized composite reward combining:
+    - Rescue reward: +0.3 per victim rescued
+    - Efficiency reward: -0.01 per timestep (time penalty)
+    - Safety reward: -0.2 per hazard collision
+    - Resource delivery: +0.2 per resource delivered
+    - Exploration bonus: +0.05 per new cell discovered
+    - Battery management: -0.1 if battery < 20%
+  reward_shaping: "shaped"
+  partial_progress_signals: true
+  sparse_vs_dense: "mixed (dense shaping + sparse event bonuses)"
+
+# Task Definitions
+tasks:
+  easy:
+    id: "DisasterRescue-Easy-v1"
+    description: "Urban rescue in small, manageable district with few hazards"
+    difficulty: 1
+    parameters:
+      map_size: 64  # 64x64 grid
+      num_victims: 5
+      num_hazards: 8
+      num_resources: 3
+      visibility_range: 20  # cells visible without fog
+      fog_density: 0.2  # 20% fog coverage
+      disaster_type: "partial_collapse"
+      battery_capacity: 1000  # timesteps
+      aftershock_probability: 0.01  # per step
+      wind_speed: "calm"
+    episode_config:
+      max_steps: 300
+      time_limit: 300
+      success_criteria:
+        min_victims_rescued: 3
+        min_resources_delivered: 1
+    baseline_performance: 0.75  # Expected trained agent score
+    metadata:
+      difficulty_rating: "easy"
+      estimated_training_time: "< 1 hour"
+
+  medium:
+    id: "DisasterRescue-Medium-v1"
+    description: "Larger urban area with moderate hazard complexity and uncertainty"
+    difficulty: 2
+    parameters:
+      map_size: 96  # 96x96 grid
+      num_victims: 12
+      num_hazards: 25
+      num_resources: 5
+      visibility_range: 15  # reduced visibility
+      fog_density: 0.4  # 40% fog coverage
+      disaster_type: "major_earthquake"
+      battery_capacity: 800  # more constrained
+      aftershock_probability: 0.05  # 5% per step
+      wind_speed: "moderate"
+    episode_config:
+      max_steps: 400
+      time_limit: 400
+      success_criteria:
+        min_victims_rescued: 7
+        min_resources_delivered: 3
+    baseline_performance: 0.55  # Harder to achieve
+    metadata:
+      difficulty_rating: "medium"
+      estimated_training_time: "2-4 hours"
+
+  hard:
+    id: "DisasterRescue-Hard-v1"
+    description: "Large-scale metro disaster with dynamic hazards, extreme uncertainty"
+    difficulty: 3
+    parameters:
+      map_size: 128  # 128x128 grid
+      num_victims: 25
+      num_hazards: 50
+      num_resources: 8
+      visibility_range: 10  # severe fog of war
+      fog_density: 0.6  # 60% fog coverage
+      disaster_type: "multi_hazard_tsunami"
+      battery_capacity: 600  # severely constrained
+      aftershock_probability: 0.1  # 10% per step (dynamic hazards)
+      wind_speed: "strong"
+      dynamic_hazard_spawning: true  # New hazards appear mid-episode
+      victim_mobility: true  # Victims move/hide
+    episode_config:
+      max_steps: 500
+      time_limit: 500
+      success_criteria:
+        min_victims_rescued: 15
+        min_resources_delivered: 5
+    baseline_performance: 0.35  # Very challenging
+    metadata:
+      difficulty_rating: "hard"
+      estimated_training_time: "8+ hours"
+      challenge_description: |
+        Requires robust planning under extreme uncertainty, dynamic adaptation,
+        multi-objective balancing, and potential transfer learning from easy/medium tasks.
+
+# Default Configuration
+defaults:
+  task: "easy"
+  max_episode_steps: 300
+  render_mode: "rgb_array"
+  seed: null
+
+# API Endpoints (if serving as REST API)
+api_endpoints:
+  reset: "/reset"
+  step: "/step"
+  state: "/state"
+  render: "/render"
+
+# Evaluation Metrics
+evaluation_metrics:
+  - name: "victims_rescued_ratio"
+    description: "Percentage of available victims successfully rescued"
+    range: [0.0, 1.0]
+  - name: "resources_delivered"
+    description: "Number of resources delivered to victims"
+    range: [0, null]
+  - name: "hazard_collision_count"
+    description: "Number of times agent collided with hazards"
+    range: [0, null]
+  - name: "exploration_coverage"
+    description: "Percentage of map explored"
+    range: [0.0, 1.0]
+  - name: "battery_efficiency"
+    description: "Actions per unit battery consumed"
+    range: [0.0, 1.0]
+  - name: "episode_reward"
+    description: "Cumulative normalized reward"
+    range: [0.0, 1.0]
+
+# Grading/Scoring Configuration
+grading:
+  deterministic: true
+  seed_reproducibility: true
+  num_eval_episodes: 20
+  score_aggregation: "mean"
+  score_range: [0.0, 1.0]
+  passing_threshold: 0.5
+
+# Changelog
+changelog:
+  "1.0.0":
+    date: "2026-04-07"
+    changes:
+      - "Initial release: OpenEnv-compliant disaster rescue environment"
+      - "3 difficulty levels: easy, medium, hard"
+      - "Full typed observation/action spaces"
+      - "Reward shaping with partial progress signals"
+      - "Real-world disaster scenario modeling"

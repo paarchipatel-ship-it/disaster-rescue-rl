@@ -1,0 +1,410 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+
+jobs:
+  # ============================================================================
+  # Code Quality & Linting
+  # ============================================================================
+  
+  lint:
+    runs-on: ubuntu-latest
+    name: Code Quality Checks
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      
+      - name: Install linting dependencies
+        run: |
+          pip install --upgrade pip setuptools
+          pip install flake8 black isort
+      
+      - name: Check code formatting with Black
+        run: |
+          black --check --line-length 100 .
+        continue-on-error: true
+      
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only .
+        continue-on-error: true
+      
+      - name: Lint with Flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+        continue-on-error: true
+
+  # ============================================================================
+  # Unit Tests
+  # ============================================================================
+  
+  test:
+    runs-on: ubuntu-latest
+    name: Unit Tests (Python ${{ matrix.python-version }})
+    
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt --only-binary :all:
+          pip install pytest pytest-cov pytest-timeout
+      
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v --tb=short --timeout=30 --cov=. --cov-report=xml
+        timeout-minutes: 10
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  # ============================================================================
+  # Environment Tests
+  # ============================================================================
+  
+  environment-test:
+    runs-on: ubuntu-latest
+    name: Environment Validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt --only-binary :all:
+      
+      - name: Test DisasterRescueEnv initialization
+        run: |
+          python -c "
+          from environment.disaster_env import DisasterRescueEnv
+          env = DisasterRescueEnv(difficulty='easy', seed=42)
+          obs, info = env.reset(seed=42)
+          print(f'✓ Environment initialized: obs.shape={obs.shape}')
+          assert obs.shape == (64, 64, 5), f'Expected shape (64,64,5), got {obs.shape}'
+          obs, reward, terminated, truncated, info = env.step(0)
+          print(f'✓ Step executed: reward={reward:.4f}')
+          print('✓ Environment test passed!')
+          "
+      
+      - name: Test all difficulty levels
+        run: |
+          python -c "
+          from environment.disaster_env import DisasterRescueEnv
+          from configs.task_config import get_all_difficulties
+          
+          for difficulty in get_all_difficulties():
+              env = DisasterRescueEnv(difficulty=difficulty, seed=42)
+              obs, info = env.reset(seed=42)
+              print(f'✓ {difficulty}: map_size={env.map_size}, victims={len(env.victims)}, hazards={len(env.hazards)}')
+          
+          print('✓ All difficulties validated!')
+          "
+
+  # ============================================================================
+  # Grader Tests
+  # ============================================================================
+  
+  grader-test:
+    runs-on: ubuntu-latest
+    name: Grader Validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt --only-binary :all:
+      
+      - name: Test graders
+        run: |
+          python utils/graders.py
+        timeout-minutes: 5
+
+  # ============================================================================
+  # Baseline Agent Tests
+  # ============================================================================
+  
+  agent-test:
+    runs-on: ubuntu-latest
+    name: Baseline Agent Validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt --only-binary :all:
+      
+      - name: Test baseline agents
+        run: |
+          python agents/baseline_agent.py
+        timeout-minutes: 10
+
+  # ============================================================================
+  # Logger Tests
+  # ============================================================================
+  
+  logger-test:
+    runs-on: ubuntu-latest
+    name: Logger Validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt --only-binary :all:
+      
+      - name: Test logger
+        run: |
+          python utils/logger.py
+        timeout-minutes: 5
+
+  # ============================================================================
+  # Configuration Tests
+  # ============================================================================
+  
+  config-test:
+    runs-on: ubuntu-latest
+    name: Configuration Validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt --only-binary :all:
+      
+      - name: Test task configuration
+        run: |
+          python configs/task_config.py
+        timeout-minutes: 5
+      
+      - name: Validate YAML configuration
+        run: |
+          python -c "
+          import yaml
+          with open('openenv.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+          print(f'✓ openenv.yaml is valid YAML')
+          print(f'✓ Environment ID: {config.get(\"id\")}')
+          print(f'✓ Tasks: {list(config.get(\"tasks\", {}).keys())}')
+          "
+
+  # ============================================================================
+  # Security Scanning
+  # ============================================================================
+  
+  security:
+    runs-on: ubuntu-latest
+    name: Security Scanning
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Run Bandit security scan
+        run: |
+          pip install bandit
+          bandit -r . -f json -o bandit-report.json || true
+        continue-on-error: true
+      
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-report
+          path: bandit-report.json
+        continue-on-error: true
+
+  # ============================================================================
+  # Documentation
+  # ============================================================================
+  
+  docs:
+    runs-on: ubuntu-latest
+    name: Documentation Check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check README exists
+        run: |
+          if [ ! -f README.md ]; then
+            echo "❌ README.md not found"
+            exit 1
+          fi
+          echo "✓ README.md exists"
+      
+      - name: Check for docstrings
+        run: |
+          python -c "
+          import ast
+          import os
+          
+          missing_docs = []
+          for root, dirs, files in os.walk('.'):
+              for file in files:
+                  if file.endswith('.py') and not file.startswith('.'):
+                      filepath = os.path.join(root, file)
+                      with open(filepath, 'r') as f:
+                          try:
+                              tree = ast.parse(f.read())
+                              for node in ast.walk(tree):
+                                  if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                                      if not ast.get_docstring(node):
+                                          missing_docs.append(f'{filepath}:{node.name}')
+                          except SyntaxError:
+                              pass
+          
+          if missing_docs:
+              print(f'⚠️  {len(missing_docs)} items missing docstrings')
+          else:
+              print('✓ All functions and classes have docstrings')
+          "
+        continue-on-error: true
+
+  # ============================================================================
+  # Build & Artifact
+  # ============================================================================
+  
+  build:
+    runs-on: ubuntu-latest
+    name: Build Artifacts
+    needs: [test, environment-test, grader-test, agent-test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Build distribution
+        run: |
+          pip install --upgrade pip setuptools wheel
+          python -m pip install build
+          python -m build
+        continue-on-error: true
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist/
+        continue-on-error: true
+
+  # ============================================================================
+  # Summary
+  # ============================================================================
+  
+  summary:
+    runs-on: ubuntu-latest
+    name: CI/CD Summary
+    needs: [lint, test, environment-test, grader-test, agent-test, logger-test, config-test, security, docs]
+    if: always()
+    
+    steps:
+      - name: Check all jobs passed
+        run: |
+          echo "✓ CI/CD Pipeline Complete"
+          echo ""
+          echo "Jobs Summary:"
+          echo "  ✓ Linting: ${{ needs.lint.result }}"
+          echo "  ✓ Unit Tests: ${{ needs.test.result }}"
+          echo "  ✓ Environment Tests: ${{ needs.environment-test.result }}"
+          echo "  ✓ Grader Tests: ${{ needs.grader-test.result }}"
+          echo "  ✓ Agent Tests: ${{ needs.agent-test.result }}"
+          echo "  ✓ Logger Tests: ${{ needs.logger-test.result }}"
+          echo "  ✓ Config Tests: ${{ needs.config-test.result }}"
+          echo "  ✓ Security: ${{ needs.security.result }}"
+          echo "  ✓ Docs: ${{ needs.docs.result }}"
+        if: ${{ success() }}
+      
+      - name: Pipeline failed
+        run: exit 1
+        if: ${{ failure() }}

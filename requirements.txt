@@ -1,0 +1,30 @@
+# Core RL & Environment
+gymnasium==0.28.1
+numpy>=1.21.0,<1.25.0
+
+# Reinforcement Learning Framework
+stable-baselines3==2.0.0
+torch==2.0.1
+
+# Web API & Deployment
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# LLM Integration
+openai==1.6.1
+requests==2.31.0
+
+# Hugging Face Spaces Integration
+gradio==4.17.0
+
+# Environment Variables & Configuration
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Data Processing & Visualization
+opencv-python==4.8.1.78
+Pillow==10.1.0
+
+# Utilities
+tqdm==4.66.1

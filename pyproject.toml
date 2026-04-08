@@ -12,10 +12,25 @@ homepage = "https://github.com/paarchipatel-ship-it/disaster-rescue-rl"
 repository = "https://github.com/paarchipatel-ship-it/disaster-rescue-rl"
 
 [project.dependencies]
-# Add dependencies from requirements.txt
-requests = "^2.25.1"
-pandas = "^1.2.0"
-# Add other dependencies as required
+gymnasium = "0.28.1"
+numpy = ">=1.21.0,<1.25.0"
+stable-baselines3 = "2.0.0"
+torch = "2.0.1"
+fastapi = "0.104.1"
+uvicorn = {version = "0.24.0", extras = ["standard"]}
+pydantic = "2.5.0"
+openai = "1.6.1"
+requests = "2.31.0"
+gradio = "4.17.0"
+python-dotenv = "1.0.0"
+pyyaml = "6.0.1"
+opencv-python = "4.8.1.78"
+Pillow = "10.1.0"
+tqdm = "4.66.1"
+openenv-core = ">=0.2.0"
+
+[project.scripts]
+server = "server.app:main"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]

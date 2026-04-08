@@ -1,0 +1,79 @@
+version = 1
+requires-python = ">=3.8"
+
+[[package]]
+name = "gymnasium"
+version = "0.28.1"
+
+[[package]]
+name = "numpy"
+version = "1.24.3"
+
+[[package]]
+name = "stable-baselines3"
+version = "2.0.0"
+requires = ["gymnasium>=0.26.0", "numpy", "torch"]
+
+[[package]]
+name = "torch"
+version = "2.0.1"
+
+[[package]]
+name = "fastapi"
+version = "0.104.1"
+requires = ["pydantic", "starlette>=0.27.0"]
+
+[[package]]
+name = "starlette"
+version = "0.27.0"
+
+[[package]]
+name = "uvicorn"
+version = "0.24.0"
+extras = ["standard"]
+
+[[package]]
+name = "pydantic"
+version = "2.5.0"
+
+[[package]]
+name = "openai"
+version = "1.6.1"
+requires = ["requests"]
+
+[[package]]
+name = "requests"
+version = "2.31.0"
+
+[[package]]
+name = "gradio"
+version = "4.17.0"
+
+[[package]]
+name = "python-dotenv"
+version = "1.0.0"
+
+[[package]]
+name = "pyyaml"
+version = "6.0.1"
+
+[[package]]
+name = "opencv-python"
+version = "4.8.1.78"
+requires = ["numpy"]
+
+[[package]]
+name = "Pillow"
+version = "10.1.0"
+
+[[package]]
+name = "tqdm"
+version = "4.66.1"
+
+[[package]]
+name = "openenv-core"
+version = "0.2.0"
+
+[metadata]
+lock-version = "1"
+content-hash = "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567abc890def"
